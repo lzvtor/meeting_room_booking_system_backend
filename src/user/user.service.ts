@@ -41,11 +41,10 @@ export class UserService {
       throw new HttpException('用户已存在', HttpStatus.BAD_REQUEST);
     }
 
-    const newUser = new User();
-    newUser.username = user.username;
-    newUser.password = md5(user.password);
-    newUser.email = user.email;
-    newUser.nickName = user.nickName;
+    const newUser = this.userRepository.create({
+      ...user,
+      password: md5(user.password),
+    });
 
     try {
       await this.userRepository.save(newUser);
