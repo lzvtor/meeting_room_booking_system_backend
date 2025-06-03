@@ -1,20 +1,42 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { RedisClientType } from 'redis';
+import { Injectable } from '@nestjs/common';
+import { createClient, RedisClientType } from 'redis';
 
 @Injectable()
 export class RedisService {
-  @Inject('REDIS_CLIENT')
-  private redisClient: RedisClientType;
+  private client: RedisClientType | null = null;
 
-  async get(key: string) {
-    return await this.redisClient.get(key);
+  private async getClient(): Promise<RedisClientType> {
+    if (!this.client) {
+      this.client = createClient({
+        socket: {
+          host: 'localhost',
+          port: 6379,
+        },
+      });
+      await this.client.connect();
+    }
+    return this.client;
   }
 
-  async set(key: string, value: string | number, ttl?: number) {
-    await this.redisClient.set(key, value);
+  async set(key: string, value: string) {
+    const client = await this.getClient();
+    await client.set(key, value);
+  }
 
-    if (ttl) {
-      await this.redisClient.expire(key, ttl);
+  async get(key: string) {
+    const client = await this.getClient();
+    return await client.get(key);
+  }
+
+  async del(key: string) {
+    const client = await this.getClient();
+    await client.del(key);
+  }
+
+  async quit() {
+    if (this.client) {
+      await this.client.quit();
+      this.client = null;
     }
   }
 }
